@@ -1,16 +1,18 @@
-package main
+package repositories
 
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"log"
+	"os"
+	"rest-api/internal/business"
+	"rest-api/internal/errors"
 )
 
 type PersonDynamo struct {
@@ -23,7 +25,7 @@ type Id struct {
 	Id int `dynamodbav:"id"`
 }
 
-func listTables(svc *dynamodb.Client) {
+func ListTables(svc *dynamodb.Client) {
 	params := &dynamodb.ListTablesInput{}
 
 	result, err := svc.ListTables(context.TODO(), params)
@@ -35,7 +37,7 @@ func listTables(svc *dynamodb.Client) {
 	log.Println("found the tables: ", result.TableNames)
 }
 
-func createTable(svc *dynamodb.Client) {
+func CreateTable(svc *dynamodb.Client) {
 	createTableInput := &dynamodb.CreateTableInput{
 		AttributeDefinitions: []types.AttributeDefinition{
 			{
@@ -60,7 +62,7 @@ func createTable(svc *dynamodb.Client) {
 	log.Println(createTableInput.TableName, "", createTableInput.AttributeDefinitions)
 }
 
-func loadDatabase() (*dynamodb.Client, error) {
+func LoadDatabase() (*dynamodb.Client, error) {
 	os.Setenv("AWS_ACCESS_KEY_ID", "dummy1")
 	os.Setenv("AWS_SECRET_ACCESS_KEY", "dummy2")
 	os.Setenv("AWS_SESSION_TOKEN", "dummy3")
@@ -77,7 +79,7 @@ func loadDatabase() (*dynamodb.Client, error) {
 	return svc, nil
 }
 
-func deleteTable(svc *dynamodb.Client) {
+func DeleteTable(svc *dynamodb.Client) {
 	deleteTableInput := &dynamodb.DeleteTableInput{
 		TableName: aws.String("my-table"),
 	}
@@ -89,8 +91,8 @@ func deleteTable(svc *dynamodb.Client) {
 	log.Println(deleteTableInput.TableName)
 }
 
-func getAllItems(svc *dynamodb.Client) ([]Person, error) {
-	var person []Person
+func GetAllItems(svc *dynamodb.Client) ([]business.Person, error) {
+	var person []business.Person
 
 	scanInput := &dynamodb.ScanInput{
 		TableName: aws.String("my-table"),
@@ -99,14 +101,14 @@ func getAllItems(svc *dynamodb.Client) ([]Person, error) {
 	result, err := svc.Scan(context.TODO(), scanInput)
 
 	if err != nil {
-		e := apiErrors("fail to get all items", err)
+		e := errors.New("fail to get all items", err)
 		log.Println(e)
 		//return person, e
 	}
 
 	errUnmarshal := attributevalue.UnmarshalListOfMaps(result.Items, &person)
 	if errUnmarshal != nil {
-		e := apiErrors("fail to unmarshal items", errUnmarshal)
+		e := errors.New("fail to unmarshal items", errUnmarshal)
 		log.Println(e)
 		//return person, e
 	}
@@ -118,7 +120,7 @@ func getAllItems(svc *dynamodb.Client) ([]Person, error) {
 	return person, nil
 }
 
-func getAllItemsWithCondition(svc *dynamodb.Client) {
+func GetAllItemsWithCondition(svc *dynamodb.Client) {
 	out, err := svc.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("my-table"),
 		FilterExpression: aws.String("attribute_not_exists(deletedAt) AND contains(firstName, :firstName)"),
@@ -134,7 +136,7 @@ func getAllItemsWithCondition(svc *dynamodb.Client) {
 	fmt.Println(out.Items)
 }
 
-func getAllItemsWithConditionExpressions(svc *dynamodb.Client) {
+func GetAllItemsWithConditionExpressions(svc *dynamodb.Client) {
 	expr, err := expression.NewBuilder().WithFilter(
 		expression.And(
 			expression.AttributeNotExists(expression.Name("deletedAt")),
@@ -158,9 +160,9 @@ func getAllItemsWithConditionExpressions(svc *dynamodb.Client) {
 	fmt.Println(out.Items)
 }
 
-func getItem(svc *dynamodb.Client, id string) (Person, error) {
+func GetItem(svc *dynamodb.Client, id string) (business.Person, error) {
 
-	var person Person
+	var person business.Person
 
 	getItemInput := &dynamodb.GetItemInput{
 		Key: map[string]types.AttributeValue{
@@ -187,7 +189,7 @@ func getItem(svc *dynamodb.Client, id string) (Person, error) {
 	return person, nil
 }
 
-func putItem(svc *dynamodb.Client, param Person) error {
+func PutItem(svc *dynamodb.Client, param business.Person) error {
 	persons := PersonDynamo{
 		Id:        param.ID,
 		FirstName: param.Firstname,
@@ -208,7 +210,7 @@ func putItem(svc *dynamodb.Client, param Person) error {
 		return err
 	}
 
-	var person Person
+	var person business.Person
 	errUnmarshalMap := attributevalue.UnmarshalMap(putItemInput.Item, &person)
 	if errUnmarshalMap != nil {
 		return errUnmarshalMap
@@ -219,7 +221,7 @@ func putItem(svc *dynamodb.Client, param Person) error {
 	return nil
 }
 
-func deleteItem(svc *dynamodb.Client, id string) error {
+func DeleteItem(svc *dynamodb.Client, id string) error {
 	deleteItemInput := &dynamodb.DeleteItemInput{
 		Key: map[string]types.AttributeValue{
 			"id": &types.AttributeValueMemberN{Value: id},

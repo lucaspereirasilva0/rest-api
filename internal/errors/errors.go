@@ -1,4 +1,4 @@
-package main
+package errors
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ type Error struct {
 	Error string `json:"error,omitempty"`
 }
 
-func apiErrors(msg string, err error) Error {
+func New(msg string, err error) Error {
 	var nameFunction string
 	errReturn := err.Error()
 

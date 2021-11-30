@@ -6,7 +6,7 @@ services:
     image: amazon/dynamodb-local
     networks:
       - local-dynamodb
-    ports:docker run -d -p 8000:8000 amazon/dynamodb-local --name my-dynamodb
+    ports:
       - "8000:8000"
     volumes:
       - dynamodata:/home/dynamodblocal

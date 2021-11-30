@@ -1,4 +1,4 @@
-package main
+package tools
 
 //func (p Person) SaveToFile(person Person) error{
 //	var persons Person
