@@ -2,9 +2,9 @@ package tools
 
 import (
 	"encoding/json"
+	"github.com/lucaspereirasilva0/rest-api/internal/errors"
 	"log"
 	"net/http"
-	"rest-api/internal/errors"
 )
 
 func ApiEncode(w http.ResponseWriter, p interface{}) {

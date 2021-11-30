@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/go-chi/chi/v5"
+	"github.com/lucaspereirasilva0/rest-api/internal/errors"
+	"github.com/lucaspereirasilva0/rest-api/internal/repositories"
+	"github.com/lucaspereirasilva0/rest-api/tools"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"rest-api/internal/errors"
-	"rest-api/internal/repositories"
-	"rest-api/tools"
 )
 
 type Person struct {

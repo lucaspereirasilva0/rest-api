@@ -2,10 +2,10 @@ package main
 
 import (
 	"github.com/go-chi/chi/v5"
+	"github.com/lucaspereirasilva0/rest-api/internal/business"
 	//"fmt"
 	"log"
 	"net/http"
-	"rest-api/internal/business"
 )
 
 func main() {

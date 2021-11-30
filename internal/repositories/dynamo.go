@@ -9,10 +9,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/lucaspereirasilva0/rest-api/internal/business"
+	"github.com/lucaspereirasilva0/rest-api/internal/errors"
 	"log"
 	"os"
-	"rest-api/internal/business"
-	"rest-api/internal/errors"
 )
 
 type PersonDynamo struct {
