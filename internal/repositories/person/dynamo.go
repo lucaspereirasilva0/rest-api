@@ -1,4 +1,4 @@
-package repositories
+package person
 
 import (
 	"context"
@@ -9,40 +9,29 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/lucaspereirasilva0/rest-api/internal/business"
 	"github.com/lucaspereirasilva0/rest-api/internal/errors"
+	"github.com/lucaspereirasilva0/rest-api/internal/model"
 	"log"
 	"os"
 )
 
-type PersonDynamo struct {
-	Id        int    `dynamodbav:"id"`
-	FirstName string `dynamodbav:"firstname"`
-	LastName  string `dynamodbav:"lastname"`
-}
-
-type Id struct {
-	Id int `dynamodbav:"id"`
-}
-
-func ListTables(svc *dynamodb.Client) {
+func ListTables(svc *dynamodb.Client) ([]string, error) {
 	params := &dynamodb.ListTablesInput{}
-
 	result, err := svc.ListTables(context.TODO(), params)
-
 	if err != nil {
-		log.Println("error in ListTables of listTables", err)
+		return nil, err
+	} else {
+		log.Println("found the tables: ", result.TableNames)
+		return result.TableNames, nil
 	}
-
-	log.Println("found the tables: ", result.TableNames)
 }
 
-func CreateTable(svc *dynamodb.Client) {
+func CreateTable(svc *dynamodb.Client, tableName string) error {
 	createTableInput := &dynamodb.CreateTableInput{
 		AttributeDefinitions: []types.AttributeDefinition{
 			{
 				AttributeName: aws.String("id"),
-				AttributeType: types.ScalarAttributeTypeN,
+				AttributeType: types.ScalarAttributeTypeS,
 			},
 		},
 		KeySchema: []types.KeySchemaElement{
@@ -51,15 +40,16 @@ func CreateTable(svc *dynamodb.Client) {
 				KeyType:       types.KeyTypeHash,
 			},
 		},
-		TableName:   aws.String("my-table"),
+		TableName:   aws.String(tableName),
 		BillingMode: types.BillingModePayPerRequest,
 	}
 	_, err := svc.CreateTable(context.TODO(), createTableInput)
 	if err != nil {
-		log.Println("error in CreateTable of createTable: ", err)
+		return err
+	} else {
+		log.Println(createTableInput.TableName, "", createTableInput.AttributeDefinitions)
+		return nil
 	}
-
-	log.Println(createTableInput.TableName, "", createTableInput.AttributeDefinitions)
 }
 
 func LoadDatabase() (*dynamodb.Client, error) {
@@ -91,8 +81,8 @@ func DeleteTable(svc *dynamodb.Client) {
 	log.Println(deleteTableInput.TableName)
 }
 
-func GetAllItems(svc *dynamodb.Client) ([]business.Person, error) {
-	var person []business.Person
+func GetAllItems(svc *dynamodb.Client) ([]model.Person, error) {
+	var person []model.Person
 
 	scanInput := &dynamodb.ScanInput{
 		TableName: aws.String("my-table"),
@@ -160,9 +150,9 @@ func GetAllItemsWithConditionExpressions(svc *dynamodb.Client) {
 	fmt.Println(out.Items)
 }
 
-func GetItem(svc *dynamodb.Client, id string) (business.Person, error) {
+func GetItem(svc *dynamodb.Client, id string) (model.Person, error) {
 
-	var person business.Person
+	var p model.Person
 
 	getItemInput := &dynamodb.GetItemInput{
 		Key: map[string]types.AttributeValue{
@@ -176,33 +166,33 @@ func GetItem(svc *dynamodb.Client, id string) (business.Person, error) {
 	result, err := svc.GetItem(context.TODO(), getItemInput)
 
 	if err != nil {
-		return person, err
+		return p, err
 	}
 
-	errUnmarshalMap := attributevalue.UnmarshalMap(result.Item, &person)
+	errUnmarshalMap := attributevalue.UnmarshalMap(result.Item, &p)
 	if errUnmarshalMap != nil {
 		log.Println("error in UnmarshalMap &person of getItem: ", errUnmarshalMap)
 	}
 
-	log.Println(person)
+	log.Println(p)
 
-	return person, nil
+	return p, nil
 }
 
-func PutItem(svc *dynamodb.Client, param business.Person) error {
-	persons := PersonDynamo{
-		Id:        param.ID,
+func PutItem(svc *dynamodb.Client, param model.Person, table string) error {
+	p := Person{
+		Id:        param.Id,
 		FirstName: param.Firstname,
 		LastName:  param.Lastname,
 	}
 
-	item, errMarshalMap := attributevalue.MarshalMap(persons)
+	item, errMarshalMap := attributevalue.MarshalMap(p)
 	if errMarshalMap != nil {
 		return errMarshalMap
 	}
 
 	putItemInput := &dynamodb.PutItemInput{
-		TableName: aws.String("my-table"),
+		TableName: aws.String(table),
 		Item:      item,
 	}
 	_, err := svc.PutItem(context.TODO(), putItemInput)
@@ -210,7 +200,7 @@ func PutItem(svc *dynamodb.Client, param business.Person) error {
 		return err
 	}
 
-	var person business.Person
+	var person model.Person
 	errUnmarshalMap := attributevalue.UnmarshalMap(putItemInput.Item, &person)
 	if errUnmarshalMap != nil {
 		return errUnmarshalMap

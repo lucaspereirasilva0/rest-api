@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/lucaspereirasilva0/rest-api/internal/errors"
-	"github.com/lucaspereirasilva0/rest-api/internal/repositories"
+	"github.com/lucaspereirasilva0/rest-api/internal/model"
+	"github.com/lucaspereirasilva0/rest-api/internal/repositories/person"
 	"github.com/lucaspereirasilva0/rest-api/tools"
 	"io/ioutil"
 	"log"
@@ -14,20 +16,8 @@ import (
 	"os"
 )
 
-type Person struct {
-	ID        int    `json:"id,omitempty"`
-	Firstname string `json:"firstname,omitempty"`
-	Lastname  string `json:"lastname,omitempty"`
-	//Address   *Address `json:"address,omitempty"`
-}
-
-type Address struct {
-	City  string `json:"city,omitempty"`
-	State string `json:"state,omitempty"`
-}
-
 func OpenDynamoDBLocal() *dynamodb.Client {
-	svc, err := repositories.LoadDatabase()
+	svc, err := person.LoadDatabase()
 	if err != nil {
 		e := errors.New("fail to load database", err)
 		log.Println(e)
@@ -38,75 +28,56 @@ func OpenDynamoDBLocal() *dynamodb.Client {
 	return svc
 }
 
-func GetPeople(w http.ResponseWriter, r *http.Request) {
+func GetPerson(w http.ResponseWriter, r *http.Request) {
 	log.Println("Getting all items..")
-	person, err := repositories.GetAllItems(OpenDynamoDBLocal())
+	p, err := person.GetAllItems(OpenDynamoDBLocal())
 	if err != nil {
 		e := errors.New("fail to get all items", err)
 		log.Println(e)
 		tools.ApiEncode(w, e)
-		return
 	}
 
-	tools.ApiEncode(w, person)
+	tools.ApiEncode(w, p)
 }
 
-func GetPerson(w http.ResponseWriter, r *http.Request) {
+func GetPersonId(w http.ResponseWriter, r *http.Request) {
 	log.Println("Getting a item...")
 
-	person, err := repositories.GetItem(OpenDynamoDBLocal(), chi.URLParam(r, "id"))
+	p, err := person.GetItem(OpenDynamoDBLocal(), chi.URLParam(r, "id"))
 	if err != nil {
 		e := errors.New("fail to get an item", err)
 		log.Println(e)
 		tools.ApiEncode(w, e)
 		return
 	} else {
-		if person == (Person{}) {
+		if p == (model.Person{}) {
 			log.Println("person not found")
 			tools.ApiEncode(w, "person not found")
 			return
 		}
 	}
 
-	tools.ApiEncode(w, person)
+	tools.ApiEncode(w, p)
 }
 
 func CreatePerson(w http.ResponseWriter, r *http.Request) {
-	var person Person
+	var p model.Person
 
 	log.Println("Putting an item")
+	tools.ApiDecode(r, &p)
 
-	tools.ApiDecode(r, &person)
-
-	if person == (Person{}) {
+	if p == (model.Person{}) {
 		e := errors.New("person nil, fail in decode", fmt.Errorf("see the log"))
 		log.Println(e)
 		tools.ApiEncode(w, e)
 		return
 	}
 
-	svc, errOpenDB := repositories.LoadDatabase()
-	if errOpenDB != nil {
-		e := errors.New("fail to open database", errOpenDB)
-		log.Println(e)
-		tools.ApiEncode(w, e)
-		return
-	}
+	svc := OpenDynamoDBLocal()
 
-	persons, errGetAllItems := repositories.GetAllItems(svc)
+	p.Id = uuid.NewString()
 
-	if errGetAllItems != nil {
-		e := errors.New("fail to get all items", errGetAllItems)
-		log.Println(e)
-		tools.ApiEncode(w, e)
-		return
-	}
-
-	id := len(persons) + 1
-
-	person.ID = id
-
-	err := repositories.PutItem(OpenDynamoDBLocal(), person)
+	err := person.PutItem(svc, p, "person")
 
 	if err != nil {
 		e := errors.New("fail to put a item", err)
@@ -114,8 +85,7 @@ func CreatePerson(w http.ResponseWriter, r *http.Request) {
 		tools.ApiEncode(w, e)
 		return
 	} else {
-		tools.ApiEncode(w, person)
-		tools.ApiEncode(w, "put an item success")
+		tools.ApiEncode(w, p)
 		log.Println("put an item success")
 	}
 }
@@ -123,7 +93,7 @@ func CreatePerson(w http.ResponseWriter, r *http.Request) {
 func DeletePerson(w http.ResponseWriter, r *http.Request) {
 	log.Println("Deleting an item")
 
-	err := repositories.DeleteItem(OpenDynamoDBLocal(), chi.URLParam(r, "id"))
+	err := person.DeleteItem(OpenDynamoDBLocal(), chi.URLParam(r, "id"))
 	if err != nil {
 		e := errors.New("fail to delete a item", err)
 		log.Println(e)
@@ -136,11 +106,11 @@ func DeletePerson(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdatePerson(w http.ResponseWriter, r *http.Request) {
-	var person Person
+	var p model.Person
 
 	log.Println("Update a item")
 
-	errDecode := json.NewDecoder(r.Body).Decode(&person)
+	errDecode := json.NewDecoder(r.Body).Decode(&p)
 	if errDecode != nil {
 		e := errors.New("fail to decode json to struct", errDecode)
 		log.Println(e)
@@ -148,46 +118,32 @@ func UpdatePerson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := repositories.PutItem(OpenDynamoDBLocal(), person)
+	err := person.PutItem(OpenDynamoDBLocal(), p, "person")
 	if err != nil {
 		e := errors.New("fail to put an item", err)
 		log.Println(e)
 		tools.ApiEncode(w, e)
 		return
 	} else {
-		tools.ApiEncode(w, person)
+		tools.ApiEncode(w, p)
 		log.Println("update item success")
 	}
 }
 
-func DeleteTable(w http.ResponseWriter, r *http.Request) {
-	log.Println("Deleting a table...")
-	repositories.DeleteTable(OpenDynamoDBLocal())
-	log.Println("delete table success")
-	tools.ApiEncode(w, "delete table success")
-}
-
-func CreateTable(w http.ResponseWriter, r *http.Request) {
-	log.Println("Creating a table...")
-	repositories.CreateTable(OpenDynamoDBLocal())
-	log.Println("create table success")
-	tools.ApiEncode(w, "create table success")
-}
-
-func (p Person) saveToFile() error {
-	file, err := json.MarshalIndent(p, "", " ")
-	if err != nil {
-		e := errors.New("fail in format file to json", err)
-		log.Println(e)
-		return err
-	}
-	_ = ioutil.WriteFile("persons.json", file, 0666)
-
-	return nil
-}
+//func (p Person) saveToFile() error {
+//	file, err := json.MarshalIndent(p, "", " ")
+//	if err != nil {
+//		e := errors.New("fail in format file to json", err)
+//		log.Println(e)
+//		return err
+//	}
+//	_ = ioutil.WriteFile("persons.json", file, 0666)
+//
+//	return nil
+//}
 
 func CreatePersonFromFile(w http.ResponseWriter, r *http.Request) {
-	var persons []repositories.PersonDynamo
+	var persons []person.Person
 
 	log.Println("Putting an item from file")
 
@@ -218,21 +174,21 @@ func CreatePersonFromFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, p := range persons {
-		person := Person{
-			ID:        p.Id,
+		p := model.Person{
+			Id:        p.Id,
 			Firstname: p.FirstName,
 			Lastname:  p.LastName,
 		}
 
-		err := repositories.PutItem(OpenDynamoDBLocal(), person)
+		err := person.PutItem(OpenDynamoDBLocal(), p, "person")
 		if err != nil {
 			e := errors.New("fail to put a item", err)
 			log.Println(e)
 			//_ = json.NewEncoder(w).Encode(_createPerson)
 			return
 		} else {
-			_ = json.NewDecoder(r.Body).Decode(&person)
-			_ = json.NewEncoder(w).Encode(person)
+			_ = json.NewDecoder(r.Body).Decode(&p)
+			_ = json.NewEncoder(w).Encode(p)
 			log.Println("put an item success")
 			_ = json.NewEncoder(w).Encode("put an item success")
 		}
