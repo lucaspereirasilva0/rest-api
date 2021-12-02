@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/lucaspereirasilva0/rest-api/internal/errors"
 	"github.com/lucaspereirasilva0/rest-api/internal/model"
+	"github.com/lucaspereirasilva0/rest-api/internal/repositories"
 	"github.com/lucaspereirasilva0/rest-api/internal/repositories/person"
 	"github.com/lucaspereirasilva0/rest-api/tools"
 	"io/ioutil"
@@ -16,44 +17,41 @@ import (
 	"os"
 )
 
-func OpenDynamoDBLocal() *dynamodb.Client {
-	svc, err := person.LoadDatabase()
+func OpenConnection() *dynamodb.Client {
+	svc, err := repositories.NewRepository()
 	if err != nil {
 		e := errors.New("fail to load database", err)
 		log.Println(e)
 		tools.ApiEncode(nil, e)
 		return nil
 	}
-
 	return svc
 }
 
 func GetPerson(w http.ResponseWriter, r *http.Request) {
 	log.Println("Getting all items..")
-	p, err := person.GetAllItems(OpenDynamoDBLocal())
+	p, err := person.GetAllItems(OpenConnection(), "person")
 	if err != nil {
 		e := errors.New("fail to get all items", err)
 		log.Println(e)
 		tools.ApiEncode(w, e)
+		return
 	}
-
 	tools.ApiEncode(w, p)
 }
 
 func GetPersonId(w http.ResponseWriter, r *http.Request) {
 	log.Println("Getting a item...")
 
-	p, err := person.GetItem(OpenDynamoDBLocal(), chi.URLParam(r, "id"))
+	p, err := person.GetItem(OpenConnection(), chi.URLParam(r, "id"))
 	if err != nil {
 		e := errors.New("fail to get an item", err)
 		log.Println(e)
 		tools.ApiEncode(w, e)
-		return
 	} else {
 		if p == (model.Person{}) {
 			log.Println("person not found")
 			tools.ApiEncode(w, "person not found")
-			return
 		}
 	}
 
@@ -70,10 +68,9 @@ func CreatePerson(w http.ResponseWriter, r *http.Request) {
 		e := errors.New("person nil, fail in decode", fmt.Errorf("see the log"))
 		log.Println(e)
 		tools.ApiEncode(w, e)
-		return
 	}
 
-	svc := OpenDynamoDBLocal()
+	svc := OpenConnection()
 
 	p.Id = uuid.NewString()
 
@@ -83,7 +80,6 @@ func CreatePerson(w http.ResponseWriter, r *http.Request) {
 		e := errors.New("fail to put a item", err)
 		log.Println(e)
 		tools.ApiEncode(w, e)
-		return
 	} else {
 		tools.ApiEncode(w, p)
 		log.Println("put an item success")
@@ -93,12 +89,11 @@ func CreatePerson(w http.ResponseWriter, r *http.Request) {
 func DeletePerson(w http.ResponseWriter, r *http.Request) {
 	log.Println("Deleting an item")
 
-	err := person.DeleteItem(OpenDynamoDBLocal(), chi.URLParam(r, "id"))
+	err := person.DeleteItem(OpenConnection(), chi.URLParam(r, "id"))
 	if err != nil {
 		e := errors.New("fail to delete a item", err)
 		log.Println(e)
 		tools.ApiEncode(w, e)
-		return
 	} else {
 		log.Println("delete item success")
 		tools.ApiEncode(w, "delete item success")
@@ -115,15 +110,13 @@ func UpdatePerson(w http.ResponseWriter, r *http.Request) {
 		e := errors.New("fail to decode json to struct", errDecode)
 		log.Println(e)
 		tools.ApiEncode(w, e)
-		return
 	}
 
-	err := person.PutItem(OpenDynamoDBLocal(), p, "person")
+	err := person.PutItem(OpenConnection(), p, "person")
 	if err != nil {
 		e := errors.New("fail to put an item", err)
 		log.Println(e)
 		tools.ApiEncode(w, e)
-		return
 	} else {
 		tools.ApiEncode(w, p)
 		log.Println("update item success")
@@ -152,7 +145,6 @@ func CreatePersonFromFile(w http.ResponseWriter, r *http.Request) {
 		e := errors.New("fail to open a json file", errOpenFile)
 		log.Println(e)
 		//_ = json.NewEncoder(w).Encode(_createPersonFromFile)
-		return
 	}
 
 	defer jsonFile.Close()
@@ -162,7 +154,6 @@ func CreatePersonFromFile(w http.ResponseWriter, r *http.Request) {
 		e := errors.New("fail to read a json file", errReadAll)
 		log.Println(e)
 		//_ = json.NewEncoder(w).Encode(_createPersonFromFile)
-		return
 	}
 
 	errUnmarshal := json.Unmarshal(b, &persons)
@@ -170,7 +161,6 @@ func CreatePersonFromFile(w http.ResponseWriter, r *http.Request) {
 		e := errors.New("fail in unmarshal a json file to person", errReadAll)
 		log.Println(e)
 		//_ = json.NewEncoder(w).Encode(_createPersonFromFile)
-		return
 	}
 
 	for _, p := range persons {
@@ -180,12 +170,11 @@ func CreatePersonFromFile(w http.ResponseWriter, r *http.Request) {
 			Lastname:  p.LastName,
 		}
 
-		err := person.PutItem(OpenDynamoDBLocal(), p, "person")
+		err := person.PutItem(OpenConnection(), p, "person")
 		if err != nil {
 			e := errors.New("fail to put a item", err)
 			log.Println(e)
 			//_ = json.NewEncoder(w).Encode(_createPerson)
-			return
 		} else {
 			_ = json.NewDecoder(r.Body).Decode(&p)
 			_ = json.NewEncoder(w).Encode(p)

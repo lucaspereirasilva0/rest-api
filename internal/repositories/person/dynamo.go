@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -12,7 +11,6 @@ import (
 	"github.com/lucaspereirasilva0/rest-api/internal/errors"
 	"github.com/lucaspereirasilva0/rest-api/internal/model"
 	"log"
-	"os"
 )
 
 func ListTables(svc *dynamodb.Client) ([]string, error) {
@@ -52,23 +50,6 @@ func CreateTable(svc *dynamodb.Client, tableName string) error {
 	}
 }
 
-func LoadDatabase() (*dynamodb.Client, error) {
-	os.Setenv("AWS_ACCESS_KEY_ID", "dummy1")
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "dummy2")
-	os.Setenv("AWS_SESSION_TOKEN", "dummy3")
-
-	cfg, err := config.LoadDefaultConfig(context.TODO())
-	if err != nil {
-		return nil, err
-	}
-
-	svc := dynamodb.NewFromConfig(cfg, func(o *dynamodb.Options) {
-		o.EndpointResolver = dynamodb.EndpointResolverFromURL("http://localhost:8000")
-	})
-
-	return svc, nil
-}
-
 func DeleteTable(svc *dynamodb.Client) {
 	deleteTableInput := &dynamodb.DeleteTableInput{
 		TableName: aws.String("my-table"),
@@ -81,11 +62,10 @@ func DeleteTable(svc *dynamodb.Client) {
 	log.Println(deleteTableInput.TableName)
 }
 
-func GetAllItems(svc *dynamodb.Client) ([]model.Person, error) {
-	var person []model.Person
-
+func GetAllItems(svc *dynamodb.Client, table string) ([]Person, error) {
+	var person []Person
 	scanInput := &dynamodb.ScanInput{
-		TableName: aws.String("my-table"),
+		TableName: aws.String(table),
 	}
 
 	result, err := svc.Scan(context.TODO(), scanInput)
@@ -93,14 +73,14 @@ func GetAllItems(svc *dynamodb.Client) ([]model.Person, error) {
 	if err != nil {
 		e := errors.New("fail to get all items", err)
 		log.Println(e)
-		//return person, e
+		return nil, err
 	}
 
 	errUnmarshal := attributevalue.UnmarshalListOfMaps(result.Items, &person)
 	if errUnmarshal != nil {
 		e := errors.New("fail to unmarshal items", errUnmarshal)
 		log.Println(e)
-		//return person, e
+		return nil, errUnmarshal
 	}
 
 	for _, p := range person {
@@ -151,7 +131,6 @@ func GetAllItemsWithConditionExpressions(svc *dynamodb.Client) {
 }
 
 func GetItem(svc *dynamodb.Client, id string) (model.Person, error) {
-
 	var p model.Person
 
 	getItemInput := &dynamodb.GetItemInput{
