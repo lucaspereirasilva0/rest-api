@@ -9,6 +9,7 @@ type Error struct {
 	Op    string `json:"op,omitempty"`
 	Msg   string `json:"msg,omitempty"`
 	Error string `json:"error,omitempty"`
+	//HTTPCode int `json:"status,omitempty"`
 }
 
 func New(msg string, err error) Error {
@@ -25,6 +26,7 @@ func New(msg string, err error) Error {
 		Op:    nameFunction,
 		Msg:   msg,
 		Error: errReturn,
+		//HTTPCode: status,
 	}
 
 	//return fmt.Errorf("%#v", e)

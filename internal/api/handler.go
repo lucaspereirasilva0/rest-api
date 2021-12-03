@@ -9,11 +9,11 @@ import (
 
 func StartHandler() {
 	router := chi.NewRouter()
-	router.Get("/contato", business.GetPerson)
-	router.Get("/contato/{id}", business.GetPersonId)
-	router.Post("/contato", business.CreatePerson)
-	router.Post("/contato/{filename}", business.CreatePersonFromFile)
-	router.Put("/contato", business.UpdatePerson)
-	router.Delete("/contato/{id}", business.DeletePerson)
+	router.Get("/findperson", business.GetPerson)
+	router.Get("/findperson/{id}", business.GetPersonId)
+	router.Post("/createperson", business.CreatePerson)
+	router.Post("/createpersonfile/{filename}", business.CreatePersonFromFile)
+	router.Put("/updateperson", business.UpdatePerson)
+	router.Delete("/deleteperson/{id}", business.DeletePerson)
 	log.Println(http.ListenAndServe(":8080", router))
 }
