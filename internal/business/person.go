@@ -43,7 +43,7 @@ func GetPerson(w http.ResponseWriter, r *http.Request) {
 func GetPersonId(w http.ResponseWriter, r *http.Request) {
 	log.Println("Getting a item...")
 
-	p, err := person.GetItem(OpenConnection(), chi.URLParam(r, "id"))
+	p, err := person.GetItem(OpenConnection(), chi.URLParam(r, "id"), "person")
 	if err != nil {
 		e := errors.New("fail to get an item", err)
 		log.Println(e)
@@ -71,9 +71,7 @@ func CreatePerson(w http.ResponseWriter, r *http.Request) {
 	}
 
 	svc := OpenConnection()
-
 	p.Id = uuid.NewString()
-
 	err := person.PutItem(svc, p, "person")
 
 	if err != nil {
@@ -89,7 +87,7 @@ func CreatePerson(w http.ResponseWriter, r *http.Request) {
 func DeletePerson(w http.ResponseWriter, r *http.Request) {
 	log.Println("Deleting an item")
 
-	err := person.DeleteItem(OpenConnection(), chi.URLParam(r, "id"))
+	err := person.DeleteItem(OpenConnection(), chi.URLParam(r, "id"), "person")
 	if err != nil {
 		e := errors.New("fail to delete a item", err)
 		log.Println(e)

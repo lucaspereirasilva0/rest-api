@@ -130,16 +130,16 @@ func GetAllItemsWithConditionExpressions(svc *dynamodb.Client) {
 	fmt.Println(out.Items)
 }
 
-func GetItem(svc *dynamodb.Client, id string) (model.Person, error) {
-	var p model.Person
+func GetItem(svc *dynamodb.Client, id string, tableName string) (interface{}, error) {
+	var p interface{}
 
 	getItemInput := &dynamodb.GetItemInput{
 		Key: map[string]types.AttributeValue{
-			"id": &types.AttributeValueMemberN{
+			"id": &types.AttributeValueMemberS{
 				Value: id,
 			},
 		},
-		TableName: aws.String("my-table"),
+		TableName: aws.String(tableName),
 	}
 
 	result, err := svc.GetItem(context.TODO(), getItemInput)
@@ -190,12 +190,12 @@ func PutItem(svc *dynamodb.Client, param model.Person, table string) error {
 	return nil
 }
 
-func DeleteItem(svc *dynamodb.Client, id string) error {
+func DeleteItem(svc *dynamodb.Client, id string, tableName string) error {
 	deleteItemInput := &dynamodb.DeleteItemInput{
 		Key: map[string]types.AttributeValue{
-			"id": &types.AttributeValueMemberN{Value: id},
+			"id": &types.AttributeValueMemberS{Value: id},
 		},
-		TableName: aws.String("my-table"),
+		TableName: aws.String(tableName),
 	}
 
 	_, err := svc.DeleteItem(context.TODO(), deleteItemInput)
