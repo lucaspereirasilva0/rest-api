@@ -1,0 +1,31 @@
+# Configurações específicas do Visual Studio Code
+.vscode/
+# Arquivos de configuração do usuário
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json
+
+# Arquivos de configuração do Workspace
+.code-workspace
+
+# Diretório de armazenamento de dados do usuário
+.vscode/
+
+# Cache de linguagens, snippets, temas e extensões instaladas
+.vscode/.config/
+
+# Logs de depuração
+.vscode/.log/
+
+# Outros arquivos e diretórios específicos do usuário
+.vscode/*.log
+
+# Arquivos de configuração de extensões
+.vscode/*.json
+
+# Arquivos temporários criados pelo VSCode
+.vscode/*.tmp
+
+# Diretório de armazenamento do projeto
+/.vscode/

@@ -85,7 +85,7 @@ func GetAllItems(svc *dynamodb.Client) ([]model.Person, error) {
 	var person []model.Person
 
 	scanInput := &dynamodb.ScanInput{
-		TableName: aws.String("my-table"),
+		TableName: aws.String("person"),
 	}
 
 	result, err := svc.Scan(context.TODO(), scanInput)
