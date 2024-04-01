@@ -3,7 +3,7 @@ package scripts
 import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/lucaspereirasilva0/rest-api/internal/errors"
-	"github.com/lucaspereirasilva0/rest-api/internal/repositories/person"
+	"github.com/lucaspereirasilva0/rest-api/internal/repository/person"
 	"log"
 )
 

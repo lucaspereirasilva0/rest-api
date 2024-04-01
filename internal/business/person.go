@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/lucaspereirasilva0/rest-api/internal/errors"
 	"github.com/lucaspereirasilva0/rest-api/internal/model"
-	"github.com/lucaspereirasilva0/rest-api/internal/repositories/person"
+	"github.com/lucaspereirasilva0/rest-api/internal/repository/person"
 	"github.com/lucaspereirasilva0/rest-api/tools"
 	"io/ioutil"
 	"log"
@@ -32,9 +32,8 @@ func GetPerson(w http.ResponseWriter, r *http.Request) {
 	log.Println("Getting all items..")
 	p, err := person.GetAllItems(OpenDynamoDBLocal())
 	if err != nil {
-		e := errors.New("fail to get all items", err)
-		log.Println(e)
-		tools.ApiEncode(w, e)
+		log.Println(err)
+		tools.ApiEncode(w, NewGetAllItemsError(err))
 	}
 
 	tools.ApiEncode(w, p)
@@ -45,14 +44,12 @@ func GetPersonId(w http.ResponseWriter, r *http.Request) {
 
 	p, err := person.GetItem(OpenDynamoDBLocal(), chi.URLParam(r, "id"))
 	if err != nil {
-		e := errors.New("fail to get an item", err)
-		log.Println(e)
-		tools.ApiEncode(w, e)
+		log.Println(err)
+		tools.ApiEncode(w, NewGetAnItemsError)
 		return
 	} else {
 		if p == (model.Person{}) {
-			log.Println("person not found")
-			tools.ApiEncode(w, "person not found")
+			tools.ApiEncode(w, NewPersonNotFoundError())
 			return
 		}
 	}
