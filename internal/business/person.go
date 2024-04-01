@@ -7,14 +7,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/lucaspereirasilva0/rest-api/internal/errors"
 	"github.com/lucaspereirasilva0/rest-api/internal/model"
-	"github.com/lucaspereirasilva0/rest-api/internal/repository/person"
+	"github.com/lucaspereirasilva0/rest-api/internal/repository"
 	"github.com/lucaspereirasilva0/rest-api/tools"
 	"log"
 	"net/http"
 	"os"
 )
 
-func OpenDynamoDBLocal() *dynamodb.Client {
+type Service interface {
+	GetPerson() ([]model.Person, error)
+}
+
+/* func OpenDynamoDBLocal() *dynamodb.Client {
 	svc, err := person.LoadDatabase()
 	if err != nil {
 		e := errors.New("fail to load database", err)
@@ -24,20 +28,9 @@ func OpenDynamoDBLocal() *dynamodb.Client {
 	}
 
 	return svc
-}
+} */
 
-func GetPerson(w http.ResponseWriter, r *http.Request) {
-	log.Println("Getting all items..")
-	p, err := person.GetAllItems(OpenDynamoDBLocal())
-	if err != nil {
-		log.Println(err)
-		tools.ApiEncode(w, NewGetAllItemsError(err))
-	}
-
-	tools.ApiEncode(w, p)
-}
-
-func GetPersonId(w http.ResponseWriter, r *http.Request) {
+/* func GetPersonId(w http.ResponseWriter, r *http.Request) {
 	log.Println("Getting a item...")
 
 	p, err := person.GetItem(OpenDynamoDBLocal(), chi.URLParam(r, "id"))
@@ -117,7 +110,7 @@ func UpdatePerson(w http.ResponseWriter, r *http.Request) {
 		tools.ApiEncode(w, p)
 		log.Println("update item success")
 	}
-}
+} */
 
 //func (p Person) saveToFile() error {
 //	file, err := json.MarshalIndent(p, "", " ")
@@ -131,7 +124,7 @@ func UpdatePerson(w http.ResponseWriter, r *http.Request) {
 //	return nil
 //}
 
-func CreatePersonFromFile(w http.ResponseWriter, r *http.Request) {
+/* func CreatePersonFromFile(w http.ResponseWriter, r *http.Request) {
 	var persons []person.Person
 
 	log.Println("Putting an item from file")
@@ -173,7 +166,7 @@ func CreatePersonFromFile(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-}
+} */
 
 //func readFile() error {
 //	var person Person

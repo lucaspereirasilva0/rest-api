@@ -1,4 +1,4 @@
-package person
+package repository
 
 import (
 	"context"
@@ -14,6 +14,24 @@ import (
 	"log"
 	"os"
 )
+
+func NewDynamoClient() (*dynamodb.Client, error) {
+	os.Setenv("AWS_ACCESS_KEY_ID", "dummy1")
+	os.Setenv("AWS_SECRET_ACCESS_KEY", "dummy2")
+	os.Setenv("AWS_SESSION_TOKEN", "dummy3")
+
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		return nil, err
+	}
+
+	svc := dynamodb.NewFromConfig(cfg, func(o *dynamodb.Options) {
+		o.EndpointResolver = dynamodb.EndpointResolverFromURL("http://localhost:8000")
+	})
+
+	return svc, nil
+}
+
 
 func ListTables(svc *dynamodb.Client) ([]string, error) {
 	params := &dynamodb.ListTablesInput{}
@@ -79,35 +97,6 @@ func DeleteTable(svc *dynamodb.Client) {
 	}
 
 	log.Println(deleteTableInput.TableName)
-}
-
-func GetAllItems(svc *dynamodb.Client) ([]model.Person, error) {
-	var person []model.Person
-
-	scanInput := &dynamodb.ScanInput{
-		TableName: aws.String("person"),
-	}
-
-	result, err := svc.Scan(context.TODO(), scanInput)
-
-	if err != nil {
-		e := errors.New("fail to get all items", err)
-		log.Println(e)
-		//return person, e
-	}
-
-	errUnmarshal := attributevalue.UnmarshalListOfMaps(result.Items, &person)
-	if errUnmarshal != nil {
-		e := errors.New("fail to unmarshal items", errUnmarshal)
-		log.Println(e)
-		//return person, e
-	}
-
-	for _, p := range person {
-		log.Println(p)
-	}
-
-	return person, nil
 }
 
 func GetAllItemsWithCondition(svc *dynamodb.Client) {

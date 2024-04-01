@@ -3,11 +3,11 @@ package scripts
 import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/lucaspereirasilva0/rest-api/internal/errors"
-	"github.com/lucaspereirasilva0/rest-api/internal/repository/person"
+	"github.com/lucaspereirasilva0/rest-api/internal/repository"
 	"log"
 )
 
-func openDynamoDBLocal() *dynamodb.Client {
+/* func openDynamoDBLocal() *dynamodb.Client {
 	svc, err := person.LoadDatabase()
 	if err != nil {
 		e := errors.New("fail to load database", err)
@@ -47,3 +47,4 @@ func createTable(svc *dynamodb.Client, tableName string) {
 		log.Println("create table success")
 	}
 }
+ */
