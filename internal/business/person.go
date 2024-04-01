@@ -2,7 +2,6 @@ package business
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -10,7 +9,6 @@ import (
 	"github.com/lucaspereirasilva0/rest-api/internal/model"
 	"github.com/lucaspereirasilva0/rest-api/internal/repository/person"
 	"github.com/lucaspereirasilva0/rest-api/tools"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -45,7 +43,7 @@ func GetPersonId(w http.ResponseWriter, r *http.Request) {
 	p, err := person.GetItem(OpenDynamoDBLocal(), chi.URLParam(r, "id"))
 	if err != nil {
 		log.Println(err)
-		tools.ApiEncode(w, NewGetAnItemsError)
+		tools.ApiEncode(w, NewGetItemError(err))
 		return
 	} else {
 		if p == (model.Person{}) {
@@ -64,9 +62,7 @@ func CreatePerson(w http.ResponseWriter, r *http.Request) {
 	tools.ApiDecode(r, &p)
 
 	if p == (model.Person{}) {
-		e := errors.New("person nil, fail in decode", fmt.Errorf("see the log"))
-		log.Println(e)
-		tools.ApiEncode(w, e)
+		tools.ApiEncode(w, NewFailDecodeError(nil))
 		return
 	}
 
@@ -77,9 +73,8 @@ func CreatePerson(w http.ResponseWriter, r *http.Request) {
 	err := person.PutItem(svc, p, "person")
 
 	if err != nil {
-		e := errors.New("fail to put a item", err)
-		log.Println(e)
-		tools.ApiEncode(w, e)
+		log.Println(err)
+		tools.ApiEncode(w, NewPutItemError(err))
 		return
 	} else {
 		tools.ApiEncode(w, p)
@@ -92,9 +87,8 @@ func DeletePerson(w http.ResponseWriter, r *http.Request) {
 
 	err := person.DeleteItem(OpenDynamoDBLocal(), chi.URLParam(r, "id"))
 	if err != nil {
-		e := errors.New("fail to delete a item", err)
-		log.Println(e)
-		tools.ApiEncode(w, e)
+		log.Println(err)
+		tools.ApiEncode(w, NewDeleteItemError(err))
 		return
 	} else {
 		log.Println("delete item success")
@@ -107,19 +101,17 @@ func UpdatePerson(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Update a item")
 
-	errDecode := json.NewDecoder(r.Body).Decode(&p)
-	if errDecode != nil {
-		e := errors.New("fail to decode json to struct", errDecode)
-		log.Println(e)
-		tools.ApiEncode(w, e)
+	err := json.NewDecoder(r.Body).Decode(&p)
+	if err != nil {
+		log.Println(err)
+		tools.ApiEncode(w, NewFailDecodeError(err))
 		return
 	}
 
-	err := person.PutItem(OpenDynamoDBLocal(), p, "person")
+	err = person.PutItem(OpenDynamoDBLocal(), p, "person")
 	if err != nil {
-		e := errors.New("fail to put an item", err)
-		log.Println(e)
-		tools.ApiEncode(w, e)
+		log.Println(err)
+		tools.ApiEncode(w, NewPutItemError(err))
 		return
 	} else {
 		tools.ApiEncode(w, p)
@@ -144,17 +136,7 @@ func CreatePersonFromFile(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Putting an item from file")
 
-	jsonFile, errOpenFile := os.Open("persons.json")
-	if errOpenFile != nil {
-		e := errors.New("fail to open a json file", errOpenFile)
-		log.Println(e)
-		//_ = json.NewEncoder(w).Encode(_createPersonFromFile)
-		return
-	}
-
-	defer jsonFile.Close()
-
-	b, errReadAll := ioutil.ReadAll(jsonFile)
+	b, errReadAll := os.ReadFile("persons.json")
 	if errReadAll != nil {
 		e := errors.New("fail to read a json file", errReadAll)
 		log.Println(e)
